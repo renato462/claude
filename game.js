@@ -256,11 +256,12 @@ function spawnParticles( brick ) {
   for ( let i = 0; i < PARTICLE_COUNT; i++ ) {
     const angle = Math.random() * Math.PI * 2;
     const speed = PARTICLE_SPEED_MIN + Math.random() * ( PARTICLE_SPEED_MAX - PARTICLE_SPEED_MIN );
+    const x0 = brick.x + ( brick.w - PARTICLE_SIZE ) / 2;
+    const y0 = brick.y + ( brick.h - PARTICLE_SIZE ) / 2;
+    const vy0 = speed * Math.sin( angle );
     state.particles.push( {
-      x: brick.x + ( brick.w - PARTICLE_SIZE ) / 2,
-      y: brick.y + ( brick.h - PARTICLE_SIZE ) / 2,
-      vx: speed * Math.cos( angle ),
-      vy: speed * Math.sin( angle ),
+      x0, y0, vx: speed * Math.cos( angle ), vy0,
+      x: x0, y: y0, vy: vy0,
       color: brick.color,
       startTime: state.time,
     } );
@@ -342,12 +343,14 @@ function updateExplosions() {
   state.explosions = state.explosions.filter( ex => state.time - ex.startTime < BRICK_EXPLOSION_MS );
 }
 
-function updateParticles( dt ) {
+// Tiro parabólico exacto desde el nacimiento: no depende del tamaño de dt
+function updateParticles() {
   state.particles = state.particles.filter( pt => state.time - pt.startTime < PARTICLE_LIFE_MS );
   for ( const pt of state.particles ) {
-    pt.vy += PARTICLE_GRAVITY * dt;
-    pt.x += pt.vx * dt;
-    pt.y += pt.vy * dt;
+    const t = ( state.time - pt.startTime ) / 1000;
+    pt.x = pt.x0 + pt.vx * t;
+    pt.y = pt.y0 + pt.vy0 * t + PARTICLE_GRAVITY * t * t / 2;
+    pt.vy = pt.vy0 + PARTICLE_GRAVITY * t;
   }
 }
 
@@ -362,7 +365,7 @@ function update( dt ) {
   }
 
   updateExplosions();
-  updateParticles( dt );
+  updateParticles();
 }
 
 // Dibujo
