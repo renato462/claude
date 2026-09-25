@@ -178,6 +178,10 @@ function endGame( result ) {
 function hasBrick( pattern, row, col ) {
   switch ( pattern ) {
     case 'full': return true;
+    case 'pyramid': return row <= 3 && col >= row && col <= BRICK_COLS - 1 - row;
+    case 'checker': return ( row + col ) % 2 === 0;
+    case 'stripes': return row % 2 === 0;
+    case 'frame': return row === 0 || row === BRICK_ROWS - 1 || col === 0 || col === BRICK_COLS - 1;
     default: return false;
   }
 }
