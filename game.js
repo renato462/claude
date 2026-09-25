@@ -17,6 +17,7 @@ const LEVELS = [
   { pattern: 'frame',   hits: 3 },
 ];
 const DAMAGE_SX = { 2: 96, 1: 160 };   // columna del sprite de daño según hp restante
+const LEVEL_BONUS = 100;           // bonificación = LEVEL_BONUS × nivel superado
 const BRICK_EXPLOSION_MS = 300;    // sustituye a EXPLOSION_DURATION (150) en game.js
 const PARTICLE_COUNT = 8;
 const PARTICLE_SIZE = 3;           // px, cuadrado
@@ -36,7 +37,7 @@ const HUD_Y = 30;
 
 // Estado de la partida
 const state = {
-  screen: 'start',           // 'start' | 'serve' | 'playing' | 'paused' | 'won' | 'lost'
+  screen: 'start',           // 'start' | 'serve' | 'playing' | 'paused' | 'levelup' | 'won' | 'lost'
   score: 0,
   lives: START_LIVES,
   level: 1,                  // 1..LEVELS.length
@@ -139,9 +140,30 @@ function action() {
     state.screen = 'serve';
   } else if ( state.screen === 'serve' ) {
     launchBall();
+  } else if ( state.screen === 'levelup' ) {
+    startLevel();
   } else if ( state.screen === 'won' || state.screen === 'lost' ) {
     resetGame();
   }
+}
+
+// Tablero vacío: bonificación y paso al siguiente nivel, o victoria en el último
+function completeLevel() {
+  state.score += LEVEL_BONUS * state.level;
+  if ( state.level < LEVELS.length ) {
+    state.level += 1;
+    state.screen = 'levelup';
+  } else {
+    endGame( 'won' );
+  }
+}
+
+// Sale de la pantalla «NIVEL N»: tablero nuevo y pelota en la pala
+function startLevel() {
+  state.bricks = createBricks( state.level );
+  state.explosions = [];
+  state.particles = [];
+  state.screen = 'serve';
 }
 
 function togglePause() {
@@ -325,7 +347,7 @@ function hitBrick() {
       b.y = b.y + b.size / 2 < brick.y + brick.h / 2 ? brick.y - b.size : brick.y + brick.h;
     }
 
-    if ( !state.bricks.some( br => br.alive ) ) endGame( 'won' );
+    if ( !state.bricks.some( br => br.alive ) ) completeLevel();
     return;
   }
 }
@@ -460,6 +482,8 @@ function render() {
     drawText( '← → / A D / ratón: mover   P / Esc: pausa   M: sonido', CANVAS_W / 2, 470, 11, 'center' );
   } else if ( state.screen === 'paused' ) {
     renderOverlay( 'PAUSA', 'P o Esc para continuar' );
+  } else if ( state.screen === 'levelup' ) {
+    renderOverlay( 'NIVEL ' + state.level, 'Espacio o clic para continuar' );
   } else if ( state.screen === 'won' ) {
     renderOverlay( '¡VICTORIA!', 'Espacio o clic para jugar otra vez' );
   } else if ( state.screen === 'lost' ) {
