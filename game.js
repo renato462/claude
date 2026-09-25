@@ -9,6 +9,20 @@ const ROW_COLORS = [ 'red', 'yellow', 'cyan', 'magenta', 'hotpink', 'green' ];
 const POINTS_PER_BRICK = 10, START_LIVES = 3;
 const MAX_DT = 1 / 30;       // tope del delta time en segundos
 const HIGHSCORE_KEY = 'arkanoid:highscore:v1';
+const BRICK_HITS = 2;              // golpes para romper un bloque
+const DAMAGED_SX = 128;            // columna del sprite agrietado en la hoja
+const BRICK_EXPLOSION_MS = 300;    // sustituye a EXPLOSION_DURATION (150) en game.js
+const PARTICLE_COUNT = 8;
+const PARTICLE_SIZE = 3;           // px, cuadrado
+const PARTICLE_SPEED_MIN = 60, PARTICLE_SPEED_MAX = 180;   // px/s
+const PARTICLE_GRAVITY = 600;      // px/s²
+const PARTICLE_LIFE_MS = 500;
+
+// Color de partícula muestreado de cada sprite (los nombres no coinciden con el tono real)
+const PARTICLE_COLORS = {
+  red: '#c02a3e', cyan: '#4fc99c', green: '#44aaf3',
+  magenta: '#632ff4', yellow: '#d9bd4c', hotpink: '#fc7d1c',
+};
 
 const BG_COLOR = '#0b0b1a';
 const TEXT_COLOR = '#ffffff';
@@ -21,10 +35,12 @@ const state = {
   lives: START_LIVES,
   highScore: 0,
   muted: false,
+  time: 0,                   // reloj de juego en ms; solo avanza dentro de update( dt )
   paddle: { x: ( CANVAS_W - PADDLE_W ) / 2, y: PADDLE_Y, w: PADDLE_W, h: PADDLE_H },
   ball: { x: 0, y: 0, vx: 0, vy: 0, size: BALL_SIZE },
   bricks: [],
   explosions: [],
+  particles: [],
   input: { left: false, right: false, mouseX: null },
 };
 
@@ -138,6 +154,7 @@ function resetGame() {
   state.lives = START_LIVES;
   state.bricks = createBricks();
   state.explosions = [];
+  state.particles = [];
   state.screen = 'serve';
 }
 
@@ -160,6 +177,7 @@ function createBricks() {
         h: BRICK_H,
         color: ROW_COLORS[ row ],
         alive: true,
+        hp: BRICK_HITS,
       } );
     }
   }
@@ -233,7 +251,24 @@ function bounceOffPaddle() {
   playSound( 'bounce' );
 }
 
-// Rompe como máximo un bloque por frame y rebota por el eje de menor penetración
+// Fragmentos del bloque roto: nacen en su centro con dirección y velocidad aleatorias
+function spawnParticles( brick ) {
+  for ( let i = 0; i < PARTICLE_COUNT; i++ ) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = PARTICLE_SPEED_MIN + Math.random() * ( PARTICLE_SPEED_MAX - PARTICLE_SPEED_MIN );
+    const x0 = brick.x + ( brick.w - PARTICLE_SIZE ) / 2;
+    const y0 = brick.y + ( brick.h - PARTICLE_SIZE ) / 2;
+    const vy0 = speed * Math.sin( angle );
+    state.particles.push( {
+      x0, y0, vx: speed * Math.cos( angle ), vy0,
+      x: x0, y: y0, vy: vy0,
+      color: brick.color,
+      startTime: state.time,
+    } );
+  }
+}
+
+// Golpea como máximo un bloque por frame y rebota por el eje de menor penetración
 function hitBrick() {
   const b = state.ball;
   const ballBox = { x: b.x, y: b.y, w: b.size, h: b.size };
@@ -241,21 +276,31 @@ function hitBrick() {
   for ( const brick of state.bricks ) {
     if ( !brick.alive || !overlaps( ballBox, brick ) ) continue;
 
-    brick.alive = false;
+    brick.hp -= 1;
     state.score += POINTS_PER_BRICK;
-    state.explosions.push( {
-      x: brick.x, y: brick.y, w: brick.w, h: brick.h,
-      color: brick.color,
-      startTime: performance.now(),
-    } );
-    playSound( 'break' );
 
+    if ( brick.hp > 0 ) {
+      playSound( 'bounce' );
+    } else {
+      brick.alive = false;
+      state.explosions.push( {
+        x: brick.x, y: brick.y, w: brick.w, h: brick.h,
+        color: brick.color,
+        startTime: state.time,
+      } );
+      spawnParticles( brick );
+      playSound( 'break' );
+    }
+
+    // Se saca la pelota del bloque para que un bloque dañado no reciba otro golpe en el frame siguiente
     const penX = Math.min( b.x + b.size, brick.x + brick.w ) - Math.max( b.x, brick.x );
     const penY = Math.min( b.y + b.size, brick.y + brick.h ) - Math.max( b.y, brick.y );
     if ( penX < penY ) {
       b.vx = -b.vx;
+      b.x = b.x + b.size / 2 < brick.x + brick.w / 2 ? brick.x - b.size : brick.x + brick.w;
     } else {
       b.vy = -b.vy;
+      b.y = b.y + b.size / 2 < brick.y + brick.h / 2 ? brick.y - b.size : brick.y + brick.h;
     }
 
     if ( !state.bricks.some( br => br.alive ) ) endGame( 'won' );
@@ -295,11 +340,22 @@ function updateBall( dt ) {
 }
 
 function updateExplosions() {
-  const now = performance.now();
-  state.explosions = state.explosions.filter( ex => now - ex.startTime < EXPLOSION_DURATION );
+  state.explosions = state.explosions.filter( ex => state.time - ex.startTime < BRICK_EXPLOSION_MS );
+}
+
+// Tiro parabólico exacto desde el nacimiento: no depende del tamaño de dt
+function updateParticles() {
+  state.particles = state.particles.filter( pt => state.time - pt.startTime < PARTICLE_LIFE_MS );
+  for ( const pt of state.particles ) {
+    const t = ( state.time - pt.startTime ) / 1000;
+    pt.x = pt.x0 + pt.vx * t;
+    pt.y = pt.y0 + pt.vy0 * t + PARTICLE_GRAVITY * t * t / 2;
+    pt.vy = pt.vy0 + PARTICLE_GRAVITY * t;
+  }
 }
 
 function update( dt ) {
+  state.time += dt * 1000;
   updatePaddle( dt );
 
   if ( state.screen === 'serve' ) {
@@ -309,6 +365,7 @@ function update( dt ) {
   }
 
   updateExplosions();
+  updateParticles();
 }
 
 // Dibujo
@@ -328,12 +385,18 @@ function renderHud() {
 }
 
 function renderExplosions() {
-  const now = performance.now();
-  const frameTime = EXPLOSION_DURATION / 4;
+  const frameTime = BRICK_EXPLOSION_MS / 4;
   for ( const ex of state.explosions ) {
-    const i = Math.floor( ( now - ex.startTime ) / frameTime );
+    const i = Math.floor( ( state.time - ex.startTime ) / frameTime );
     const frame = EXPLOSION_FRAMES[ ex.color ][ i ];
     if ( frame ) drawFrame( ctx, frame, ex.x, ex.y, ex.w, ex.h );
+  }
+}
+
+function renderParticles() {
+  for ( const pt of state.particles ) {
+    ctx.fillStyle = PARTICLE_COLORS[ pt.color ];
+    ctx.fillRect( pt.x, pt.y, PARTICLE_SIZE, PARTICLE_SIZE );
   }
 }
 
@@ -349,9 +412,17 @@ function render() {
   ctx.fillRect( 0, 0, CANVAS_W, CANVAS_H );
 
   for ( const brick of state.bricks ) {
-    if ( brick.alive ) drawSprite( ctx, 'block_' + brick.color, brick.x, brick.y, brick.w, brick.h );
+    if ( !brick.alive ) continue;
+    if ( brick.hp < BRICK_HITS ) {
+      // Sprite agrietado: misma fila de color que el bloque, columna DAMAGED_SX
+      const frame = { sx: DAMAGED_SX, sy: SPRITES.blocks[ brick.color ].sy, sw: 32, sh: 16 };
+      drawFrame( ctx, frame, brick.x, brick.y, brick.w, brick.h );
+    } else {
+      drawSprite( ctx, 'block_' + brick.color, brick.x, brick.y, brick.w, brick.h );
+    }
   }
   renderExplosions();
+  renderParticles();
 
   const p = state.paddle;
   drawSprite( ctx, 'paddle', p.x, p.y, p.w, p.h );

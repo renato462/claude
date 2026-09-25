@@ -1,6 +1,6 @@
 # SPEC 02 — Bloques de dos golpes con grietas, explosión y partículas
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01
 > **Fecha:** 2026-09-24
 > **Objetivo:** Que cada bloque necesite dos golpes, muestre grietas tras el primero y al romperse estalle con una explosión de 300 ms y partículas que se congelan en pausa.
@@ -53,7 +53,7 @@ const state = {
   time: 0,                   // reloj de juego en ms; solo avanza dentro de update( dt )
   bricks: [ /* { x, y, w, h, color, alive, hp } */ ],        // hp: golpes restantes, empieza en BRICK_HITS
   explosions: [ /* { x, y, w, h, color, startTime } */ ],    // startTime en state.time
-  particles: [ /* { x, y, vx, vy, color, startTime } */ ],   // nuevo
+  particles: [ /* { x0, y0, vx, vy0, x, y, vy, color, startTime } */ ],   // nuevo
 };
 ```
 
@@ -63,6 +63,7 @@ Convenciones:
 - `startTime` de explosiones y partículas se toma de `state.time`, nunca de `performance.now()`.
 - El sprite agrietado se dibuja con `drawFrame()` y un rectángulo `{ sx: DAMAGED_SX, sy, sw: 32, sh: 16 }`. `sy` sale de `SPRITES.blocks[ color ].sy`.
 - `x` e `y` de una partícula marcan su esquina superior izquierda. Las partículas nacen en el centro del bloque.
+- `x0`, `y0` y `vy0` son la posición y la velocidad vertical al nacer, y no cambian. `x`, `y` y `vy` son los valores actuales y se calculan con la fórmula exacta del tiro parabólico a partir de `t = ( state.time - startTime ) / 1000`: `x = x0 + vx·t`, `y = y0 + vy0·t + PARTICLE_GRAVITY·t²/2`, `vy = vy0 + PARTICLE_GRAVITY·t`.
 - `assets/spritesheet.js` no se modifica.
 
 ## Plan de implementación
@@ -70,7 +71,7 @@ Convenciones:
 1. Añadir el reloj de juego y alargar la explosión. Añadir `state.time`, que `update( dt )` incrementa en `dt * 1000`. Las explosiones guardan `startTime = state.time`, y `updateExplosions()` y `renderExplosions()` usan `state.time` y `BRICK_EXPLOSION_MS` en lugar de `performance.now()` y `EXPLOSION_DURATION`. Prueba manual: la explosión dura el doble y, si se pausa justo al romper un bloque, se queda congelada.
 2. Añadir la resistencia de los bloques. `createBricks()` pone `hp: BRICK_HITS` en cada bloque. En `hitBrick()`, cada golpe resta 1 a `hp`, suma `POINTS_PER_BRICK` y hace rebotar la pelota como hasta ahora. Si `hp` queda por encima de 0, suena `ball-bounce`. Si llega a 0, el bloque se marca `alive = false`, se crea la explosión y suena `break-sound`. La condición de victoria no cambia. Prueba manual: un bloque necesita dos golpes y cada golpe suma 10.
 3. Dibujar el estado agrietado. En `render()`, los bloques vivos con `hp < BRICK_HITS` se dibujan con `drawFrame()` y el rectángulo de `DAMAGED_SX`. Los intactos siguen con `drawSprite( ctx, 'block_' + color, … )`. Prueba manual: tras el primer golpe el bloque se ve agrietado en su mismo color.
-4. Añadir las partículas. Al romper un bloque se añaden `PARTICLE_COUNT` entradas a `state.particles`, con un ángulo aleatorio de 0 a 360° y una velocidad aleatoria entre `PARTICLE_SPEED_MIN` y `PARTICLE_SPEED_MAX`. `update( dt )` les suma `PARTICLE_GRAVITY * dt` a `vy`, las mueve y elimina las que superan `PARTICLE_LIFE_MS`. `render()` las dibuja como cuadrados de `PARTICLE_SIZE` con `PARTICLE_COLORS[ color ]`, después de los bloques y antes del HUD. `resetGame()` vacía `state.particles`. Prueba manual: al romper un bloque salen 8 fragmentos de su color que caen y desaparecen.
+4. Añadir las partículas. Al romper un bloque se añaden `PARTICLE_COUNT` entradas a `state.particles`, con un ángulo aleatorio de 0 a 360° y una velocidad aleatoria entre `PARTICLE_SPEED_MIN` y `PARTICLE_SPEED_MAX`. `update( dt )` recalcula `x`, `y` y `vy` de cada una con la fórmula exacta a partir del tiempo transcurrido, y elimina las que superan `PARTICLE_LIFE_MS`. `render()` las dibuja como cuadrados de `PARTICLE_SIZE` con `PARTICLE_COLORS[ color ]`, después de los bloques y antes del HUD. `resetGame()` vacía `state.particles`. Prueba manual: al romper un bloque salen 8 fragmentos de su color que caen y desaparecen.
 
 ## Criterios de aceptación
 
@@ -108,6 +109,8 @@ Convenciones:
 - **Sí:** colores de partícula fijos, muestreados de los sprites. Los nombres de color de la hoja no coinciden con su tono real: `hotpink` es naranja y `green` es azul.
 - **Sí:** reloj de juego `state.time` para explosiones y partículas. Se congelan en pausa, coherente con el criterio 17 de la SPEC 01.
 - **No:** seguir con `performance.now()`, que dejaba avanzar la explosión durante la pausa.
+- **Sí:** posición de las partículas calculada con la fórmula exacta del tiro parabólico. Da el mismo resultado a cualquier frecuencia de refresco, que es lo que pide el criterio de 60 Hz frente a 144 Hz.
+- **No:** sumar `PARTICLE_GRAVITY * dt` a la velocidad en cada frame. Se probó y la altura difería unos 0,73 px entre 60 y 144 Hz a los 250 ms.
 - **No:** texto «+10» flotante ni temblor de pantalla. Se descartaron en la fase de preguntas.
 
 ## Riesgos
