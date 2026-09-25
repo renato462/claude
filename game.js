@@ -9,8 +9,24 @@ const ROW_COLORS = [ 'red', 'yellow', 'cyan', 'magenta', 'hotpink', 'green' ];
 const POINTS_PER_BRICK = 10, START_LIVES = 3;
 const MAX_DT = 1 / 30;       // tope del delta time en segundos
 const HIGHSCORE_KEY = 'arkanoid:highscore:v1';
-const BRICK_HITS = 2;              // golpes para romper un bloque
-const DAMAGED_SX = 128;            // columna del sprite agrietado en la hoja
+const LEVELS = [
+  { pattern: 'full',    hits: 1 },
+  { pattern: 'pyramid', hits: 1 },
+  { pattern: 'checker', hits: 2 },
+  { pattern: 'stripes', hits: 2 },
+  { pattern: 'frame',   hits: 3 },
+];
+const DAMAGE_SX = { 2: 96, 1: 160 };   // columna del sprite de daño según hp restante
+const LEVEL_BONUS = 100;           // bonificación = LEVEL_BONUS × nivel superado
+const BALL_SPEED_STEP = 30;        // px/s extra por nivel; BALL_SPEED (360) es la del nivel 1
+
+// Sonidos por evento: [ sonido, velocidad de reproducción ]
+const EVENT_SOUNDS = {
+  loseLife: [ 'bounce', 0.5 ],
+  levelUp:  [ 'break', 1.5 ],
+  gameOver: [ 'break', 0.5 ],
+  victory:  [ 'break', 2 ],
+};
 const BRICK_EXPLOSION_MS = 300;    // sustituye a EXPLOSION_DURATION (150) en game.js
 const PARTICLE_COUNT = 8;
 const PARTICLE_SIZE = 3;           // px, cuadrado
@@ -30,9 +46,10 @@ const HUD_Y = 30;
 
 // Estado de la partida
 const state = {
-  screen: 'start',           // 'start' | 'serve' | 'playing' | 'paused' | 'won' | 'lost'
+  screen: 'start',           // 'start' | 'serve' | 'playing' | 'paused' | 'levelup' | 'won' | 'lost'
   score: 0,
   lives: START_LIVES,
+  level: 1,                  // 1..LEVELS.length
   highScore: 0,
   muted: false,
   time: 0,                   // reloj de juego en ms; solo avanza dentro de update( dt )
@@ -57,11 +74,19 @@ const sounds = {
   break: new Audio( 'assets/sounds/break-sound.mp3' ),
 };
 
-// Se clona el Audio para que los sonidos se solapen sin cortarse
-function playSound( name ) {
+// Se clona el Audio para que los sonidos se solapen sin cortarse.
+// rate cambia la velocidad y, sin conservar el tono, también lo hace más grave o agudo.
+function playSound( name, rate = 1 ) {
   if ( state.muted ) return;
   const s = sounds[ name ].cloneNode();
+  s.playbackRate = rate;
+  s.preservesPitch = false;
   s.play().catch( () => {} );
+}
+
+function playEventSound( event ) {
+  const [ name, rate ] = EVENT_SOUNDS[ event ];
+  playSound( name, rate );
 }
 
 // Récord persistente
@@ -132,9 +157,32 @@ function action() {
     state.screen = 'serve';
   } else if ( state.screen === 'serve' ) {
     launchBall();
+  } else if ( state.screen === 'levelup' ) {
+    startLevel();
   } else if ( state.screen === 'won' || state.screen === 'lost' ) {
     resetGame();
   }
+}
+
+// Tablero vacío: bonificación y paso al siguiente nivel, o victoria en el último
+function completeLevel() {
+  state.score += LEVEL_BONUS * state.level;
+  if ( state.level < LEVELS.length ) {
+    state.level += 1;
+    state.screen = 'levelup';
+    playEventSound( 'levelUp' );
+  } else {
+    endGame( 'won' );
+    playEventSound( 'victory' );
+  }
+}
+
+// Sale de la pantalla «NIVEL N»: tablero nuevo y pelota en la pala
+function startLevel() {
+  state.bricks = createBricks( state.level );
+  state.explosions = [];
+  state.particles = [];
+  state.screen = 'serve';
 }
 
 function togglePause() {
@@ -152,7 +200,8 @@ function togglePause() {
 function resetGame() {
   state.score = 0;
   state.lives = START_LIVES;
-  state.bricks = createBricks();
+  state.level = 1;
+  state.bricks = createBricks( state.level );
   state.explosions = [];
   state.particles = [];
   state.screen = 'serve';
@@ -166,10 +215,24 @@ function endGame( result ) {
   }
 }
 
-function createBricks() {
+// ¿Hay bloque en esta celda según el patrón del nivel?
+function hasBrick( pattern, row, col ) {
+  switch ( pattern ) {
+    case 'full': return true;
+    case 'pyramid': return row <= 3 && col >= row && col <= BRICK_COLS - 1 - row;
+    case 'checker': return ( row + col ) % 2 === 0;
+    case 'stripes': return row % 2 === 0;
+    case 'frame': return row === 0 || row === BRICK_ROWS - 1 || col === 0 || col === BRICK_COLS - 1;
+    default: return false;
+  }
+}
+
+function createBricks( level ) {
+  const { pattern, hits } = LEVELS[ level - 1 ];
   const bricks = [];
   for ( let row = 0; row < BRICK_ROWS; row++ ) {
     for ( let col = 0; col < BRICK_COLS; col++ ) {
+      if ( !hasBrick( pattern, row, col ) ) continue;
       bricks.push( {
         x: BRICK_OFFSET_X + col * ( BRICK_W + BRICK_GAP ),
         y: BRICK_OFFSET_Y + row * ( BRICK_H + BRICK_GAP ),
@@ -177,7 +240,7 @@ function createBricks() {
         h: BRICK_H,
         color: ROW_COLORS[ row ],
         alive: true,
-        hp: BRICK_HITS,
+        hp: hits,
       } );
     }
   }
@@ -196,11 +259,17 @@ function overlaps( a, b ) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+// Velocidad de la pelota en el nivel actual; constante dentro del nivel
+function levelSpeed() {
+  return BALL_SPEED + BALL_SPEED_STEP * ( state.level - 1 );
+}
+
 // Saque con ángulo aleatorio de ±30° respecto a la vertical, hacia arriba
 function launchBall() {
   const angle = degToRad( ( Math.random() * 2 - 1 ) * 30 );
-  state.ball.vx = BALL_SPEED * Math.sin( angle );
-  state.ball.vy = -BALL_SPEED * Math.cos( angle );
+  const speed = levelSpeed();
+  state.ball.vx = speed * Math.sin( angle );
+  state.ball.vy = -speed * Math.cos( angle );
   state.screen = 'playing';
 }
 
@@ -217,8 +286,10 @@ function loseLife() {
   state.lives -= 1;
   if ( state.lives <= 0 ) {
     endGame( 'lost' );
+    playEventSound( 'gameOver' );
   } else {
     state.screen = 'serve';
+    playEventSound( 'loseLife' );
   }
 }
 
@@ -245,8 +316,9 @@ function bounceOffPaddle() {
 
   const offset = clamp( ( ( b.x + b.size / 2 ) - ( p.x + p.w / 2 ) ) / ( PADDLE_W / 2 ), -1, 1 );
   const angle = degToRad( offset * MAX_BOUNCE_ANGLE );
-  b.vx = BALL_SPEED * Math.sin( angle );
-  b.vy = -BALL_SPEED * Math.cos( angle );
+  const speed = levelSpeed();
+  b.vx = speed * Math.sin( angle );
+  b.vy = -speed * Math.cos( angle );
   b.y = p.y - b.size;
   playSound( 'bounce' );
 }
@@ -303,7 +375,7 @@ function hitBrick() {
       b.y = b.y + b.size / 2 < brick.y + brick.h / 2 ? brick.y - b.size : brick.y + brick.h;
     }
 
-    if ( !state.bricks.some( br => br.alive ) ) endGame( 'won' );
+    if ( !state.bricks.some( br => br.alive ) ) completeLevel();
     return;
   }
 }
@@ -381,6 +453,7 @@ function renderHud() {
   drawText( 'PUNTOS ' + state.score, 16, HUD_Y, 16, 'left' );
   drawText( 'RÉCORD ' + state.highScore, CANVAS_W / 2, HUD_Y, 16, 'center' );
   drawText( 'VIDAS ' + state.lives, CANVAS_W - 16, HUD_Y, 16, 'right' );
+  drawText( 'NIVEL ' + state.level, CANVAS_W / 2, HUD_Y + 22, 12, 'center' );
   if ( state.muted ) drawText( 'SIN SONIDO (M)', CANVAS_W - 16, HUD_Y + 22, 11, 'right' );
 }
 
@@ -413,9 +486,9 @@ function render() {
 
   for ( const brick of state.bricks ) {
     if ( !brick.alive ) continue;
-    if ( brick.hp < BRICK_HITS ) {
-      // Sprite agrietado: misma fila de color que el bloque, columna DAMAGED_SX
-      const frame = { sx: DAMAGED_SX, sy: SPRITES.blocks[ brick.color ].sy, sw: 32, sh: 16 };
+    if ( brick.hp < LEVELS[ state.level - 1 ].hits ) {
+      // Sprite de daño: misma fila de color que el bloque, columna según hp restante
+      const frame = { sx: DAMAGE_SX[ brick.hp ], sy: SPRITES.blocks[ brick.color ].sy, sw: 32, sh: 16 };
       drawFrame( ctx, frame, brick.x, brick.y, brick.w, brick.h );
     } else {
       drawSprite( ctx, 'block_' + brick.color, brick.x, brick.y, brick.w, brick.h );
@@ -437,6 +510,8 @@ function render() {
     drawText( '← → / A D / ratón: mover   P / Esc: pausa   M: sonido', CANVAS_W / 2, 470, 11, 'center' );
   } else if ( state.screen === 'paused' ) {
     renderOverlay( 'PAUSA', 'P o Esc para continuar' );
+  } else if ( state.screen === 'levelup' ) {
+    renderOverlay( 'NIVEL ' + state.level, 'Espacio o clic para continuar' );
   } else if ( state.screen === 'won' ) {
     renderOverlay( '¡VICTORIA!', 'Espacio o clic para jugar otra vez' );
   } else if ( state.screen === 'lost' ) {
@@ -458,5 +533,5 @@ function loop( now ) {
 }
 
 state.highScore = loadHighScore();
-state.bricks = createBricks();
+state.bricks = createBricks( state.level );
 loadSpritesheet( () => requestAnimationFrame( loop ) );
