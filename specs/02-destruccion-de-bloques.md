@@ -75,21 +75,21 @@ Convenciones:
 
 ## Criterios de aceptación
 
-- [ ] La página carga sin errores en la consola.
-- [ ] `assets/spritesheet.js` no tiene cambios respecto a `main`.
-- [ ] Cada uno de los 48 bloques necesita exactamente 2 golpes para romperse.
-- [ ] Tras el primer golpe el bloque sigue en su sitio y se dibuja con el sprite agrietado (`sx = 128`) de su color.
-- [ ] Cada golpe a un bloque suma exactamente 10 puntos.
-- [ ] Al ganar la partida sin perder vidas, la puntuación es 960.
-- [ ] El golpe que no rompe un bloque hace sonar `ball-bounce.mp3`, y el que lo rompe, `break-sound.mp3`.
-- [ ] Al romperse un bloque, la explosión muestra sus 4 frames en 300 ms de juego y después desaparece.
-- [ ] Al romperse un bloque aparecen 8 partículas del color de su sprite.
-- [ ] La velocidad vertical de las partículas aumenta con el tiempo, y cada partícula desaparece a los 500 ms de juego.
-- [ ] Las partículas no alteran la trayectoria de la pelota.
-- [ ] En pausa, explosiones y partículas se quedan quietas. Al reanudar siguen desde el mismo frame y la misma posición.
-- [ ] Con el mismo tiempo de juego, explosiones y partículas avanzan igual a 60 Hz y a 144 Hz.
-- [ ] Se rompe o daña como máximo un bloque por frame.
-- [ ] Al reiniciar desde victoria o game over, los 48 bloques están intactos y no queda ninguna explosión ni partícula.
+- [x] La página carga sin errores en la consola.
+- [x] `assets/spritesheet.js` no tiene cambios respecto a `main`.
+- [x] Cada uno de los 48 bloques necesita exactamente 2 golpes para romperse.
+- [x] Tras el primer golpe el bloque sigue en su sitio y se dibuja con el sprite agrietado (`sx = 128`) de su color.
+- [x] Cada golpe a un bloque suma exactamente 10 puntos.
+- [x] Al ganar la partida sin perder vidas, la puntuación es 960.
+- [x] El golpe que no rompe un bloque hace sonar `ball-bounce.mp3`, y el que lo rompe, `break-sound.mp3`.
+- [x] Al romperse un bloque, la explosión muestra sus 4 frames en 300 ms de juego y después desaparece.
+- [x] Al romperse un bloque aparecen 8 partículas del color de su sprite.
+- [x] La velocidad vertical de las partículas aumenta con el tiempo, y cada partícula desaparece a los 500 ms de juego.
+- [x] Las partículas no alteran la trayectoria de la pelota.
+- [x] En pausa, explosiones y partículas se quedan quietas. Al reanudar siguen desde el mismo frame y la misma posición.
+- [x] Con el mismo tiempo de juego, explosiones y partículas avanzan igual a 60 Hz y a 144 Hz.
+- [x] Se rompe o daña como máximo un bloque por frame.
+- [x] Al reiniciar desde victoria o game over, los 48 bloques están intactos y no queda ninguna explosión ni partícula.
 
 ## Decisiones
 

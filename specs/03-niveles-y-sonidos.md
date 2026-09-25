@@ -1,6 +1,6 @@
 # SPEC 03 — Cinco niveles con dificultad creciente y sonidos de partida
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01, SPEC 02
 > **Fecha:** 2026-09-25
 > **Objetivo:** Encadenar cinco niveles con tableros generados por código, pelota más rápida y bloques más duros, y ponerles sonido a perder vida, superar nivel, game over y victoria.
@@ -94,26 +94,26 @@ Convenciones:
 
 ## Criterios de aceptación
 
-- [ ] La página carga sin errores en la consola, en la pantalla de inicio y con el tablero del nivel 1 detrás.
-- [ ] `assets/spritesheet.js` y `assets/sounds/` no tienen cambios respecto a `main`.
-- [ ] Los tableros tienen 48, 20, 24, 24 y 24 bloques en los niveles 1 a 5, con las formas `full`, `pyramid`, `checker`, `stripes` y `frame` descritas en el alcance.
-- [ ] Cada bloque conserva el color de su fila según `ROW_COLORS`.
-- [ ] Los bloques necesitan exactamente 1, 1, 2, 2 y 3 golpes en los niveles 1 a 5.
-- [ ] Un bloque con `hp` 2 restante se dibuja con `sx = 96` y uno con `hp` 1 dañado, con `sx = 160`.
-- [ ] Cada golpe suma 10 puntos, y superar el nivel N suma además 100 × N.
-- [ ] Completar los 5 niveles sin perder vidas da exactamente 3860 puntos: 2360 por golpes y 1500 de bonificación.
-- [ ] Al vaciar los niveles 1 a 4 aparece la pantalla «NIVEL N» con el número del siguiente nivel. Espacio o clic cargan ese tablero con la pelota en la pala.
-- [ ] Al pasar de nivel se conservan las vidas y la puntuación.
-- [ ] Al vaciar el nivel 5 se muestra la pantalla de victoria.
-- [ ] Tras el saque y tras cada rebote en la pala, el módulo de la velocidad de la pelota es 360, 390, 420, 450 y 480 px/s en los niveles 1 a 5.
-- [ ] El HUD muestra «NIVEL N» con el nivel actual en todas las pantallas.
-- [ ] Tras game over o la victoria final, Espacio o clic reinician en el nivel 1, con 48 bloques de 1 golpe, 3 vidas y 0 puntos.
-- [ ] Al perder una vida sin llegar a game over suena `ball-bounce.mp3` a velocidad 0,5.
-- [ ] Al pasar a `levelup` suena `break-sound.mp3` a velocidad 1,5.
-- [ ] Al pasar a `lost` suena `break-sound.mp3` a velocidad 0,5.
-- [ ] Al pasar a `won` suena `break-sound.mp3` a velocidad 2.
-- [ ] Con M activado no suena ninguno de estos sonidos.
-- [ ] P y Esc no pausan en la pantalla `levelup`.
+- [x] La página carga sin errores en la consola, en la pantalla de inicio y con el tablero del nivel 1 detrás.
+- [x] `assets/spritesheet.js` y `assets/sounds/` no tienen cambios respecto a `main`.
+- [x] Los tableros tienen 48, 20, 24, 24 y 24 bloques en los niveles 1 a 5, con las formas `full`, `pyramid`, `checker`, `stripes` y `frame` descritas en el alcance.
+- [x] Cada bloque conserva el color de su fila según `ROW_COLORS`.
+- [x] Los bloques necesitan exactamente 1, 1, 2, 2 y 3 golpes en los niveles 1 a 5.
+- [x] Un bloque con `hp` 2 restante se dibuja con `sx = 96` y uno con `hp` 1 dañado, con `sx = 160`.
+- [x] Cada golpe suma 10 puntos, y superar el nivel N suma además 100 × N.
+- [x] Completar los 5 niveles sin perder vidas da exactamente 3860 puntos: 2360 por golpes y 1500 de bonificación.
+- [x] Al vaciar los niveles 1 a 4 aparece la pantalla «NIVEL N» con el número del siguiente nivel. Espacio o clic cargan ese tablero con la pelota en la pala.
+- [x] Al pasar de nivel se conservan las vidas y la puntuación.
+- [x] Al vaciar el nivel 5 se muestra la pantalla de victoria.
+- [x] Tras el saque y tras cada rebote en la pala, el módulo de la velocidad de la pelota es 360, 390, 420, 450 y 480 px/s en los niveles 1 a 5.
+- [x] El HUD muestra «NIVEL N» con el nivel actual en todas las pantallas.
+- [x] Tras game over o la victoria final, Espacio o clic reinician en el nivel 1, con 48 bloques de 1 golpe, 3 vidas y 0 puntos.
+- [x] Al perder una vida sin llegar a game over suena `ball-bounce.mp3` a velocidad 0,5.
+- [x] Al pasar a `levelup` suena `break-sound.mp3` a velocidad 1,5.
+- [x] Al pasar a `lost` suena `break-sound.mp3` a velocidad 0,5.
+- [x] Al pasar a `won` suena `break-sound.mp3` a velocidad 2.
+- [x] Con M activado no suena ninguno de estos sonidos.
+- [x] P y Esc no pausan en la pantalla `levelup`.
 
 ## Decisiones
 

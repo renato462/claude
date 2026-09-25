@@ -18,6 +18,15 @@ const LEVELS = [
 ];
 const DAMAGE_SX = { 2: 96, 1: 160 };   // columna del sprite de daño según hp restante
 const LEVEL_BONUS = 100;           // bonificación = LEVEL_BONUS × nivel superado
+const BALL_SPEED_STEP = 30;        // px/s extra por nivel; BALL_SPEED (360) es la del nivel 1
+
+// Sonidos por evento: [ sonido, velocidad de reproducción ]
+const EVENT_SOUNDS = {
+  loseLife: [ 'bounce', 0.5 ],
+  levelUp:  [ 'break', 1.5 ],
+  gameOver: [ 'break', 0.5 ],
+  victory:  [ 'break', 2 ],
+};
 const BRICK_EXPLOSION_MS = 300;    // sustituye a EXPLOSION_DURATION (150) en game.js
 const PARTICLE_COUNT = 8;
 const PARTICLE_SIZE = 3;           // px, cuadrado
@@ -65,11 +74,19 @@ const sounds = {
   break: new Audio( 'assets/sounds/break-sound.mp3' ),
 };
 
-// Se clona el Audio para que los sonidos se solapen sin cortarse
-function playSound( name ) {
+// Se clona el Audio para que los sonidos se solapen sin cortarse.
+// rate cambia la velocidad y, sin conservar el tono, también lo hace más grave o agudo.
+function playSound( name, rate = 1 ) {
   if ( state.muted ) return;
   const s = sounds[ name ].cloneNode();
+  s.playbackRate = rate;
+  s.preservesPitch = false;
   s.play().catch( () => {} );
+}
+
+function playEventSound( event ) {
+  const [ name, rate ] = EVENT_SOUNDS[ event ];
+  playSound( name, rate );
 }
 
 // Récord persistente
@@ -153,8 +170,10 @@ function completeLevel() {
   if ( state.level < LEVELS.length ) {
     state.level += 1;
     state.screen = 'levelup';
+    playEventSound( 'levelUp' );
   } else {
     endGame( 'won' );
+    playEventSound( 'victory' );
   }
 }
 
@@ -240,11 +259,17 @@ function overlaps( a, b ) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+// Velocidad de la pelota en el nivel actual; constante dentro del nivel
+function levelSpeed() {
+  return BALL_SPEED + BALL_SPEED_STEP * ( state.level - 1 );
+}
+
 // Saque con ángulo aleatorio de ±30° respecto a la vertical, hacia arriba
 function launchBall() {
   const angle = degToRad( ( Math.random() * 2 - 1 ) * 30 );
-  state.ball.vx = BALL_SPEED * Math.sin( angle );
-  state.ball.vy = -BALL_SPEED * Math.cos( angle );
+  const speed = levelSpeed();
+  state.ball.vx = speed * Math.sin( angle );
+  state.ball.vy = -speed * Math.cos( angle );
   state.screen = 'playing';
 }
 
@@ -261,8 +286,10 @@ function loseLife() {
   state.lives -= 1;
   if ( state.lives <= 0 ) {
     endGame( 'lost' );
+    playEventSound( 'gameOver' );
   } else {
     state.screen = 'serve';
+    playEventSound( 'loseLife' );
   }
 }
 
@@ -289,8 +316,9 @@ function bounceOffPaddle() {
 
   const offset = clamp( ( ( b.x + b.size / 2 ) - ( p.x + p.w / 2 ) ) / ( PADDLE_W / 2 ), -1, 1 );
   const angle = degToRad( offset * MAX_BOUNCE_ANGLE );
-  b.vx = BALL_SPEED * Math.sin( angle );
-  b.vy = -BALL_SPEED * Math.cos( angle );
+  const speed = levelSpeed();
+  b.vx = speed * Math.sin( angle );
+  b.vy = -speed * Math.cos( angle );
   b.y = p.y - b.size;
   playSound( 'bounce' );
 }

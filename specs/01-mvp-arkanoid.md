@@ -91,26 +91,26 @@ Convenciones:
 
 ## Criterios de aceptación
 
-- [ ] Al servir la raíz por HTTP y abrir `index.html` se ve la pantalla de inicio sin errores en la consola.
-- [ ] Espacio o clic en la pantalla de inicio llevan a `serve`, con la pelota pegada a la pala.
-- [ ] Las flechas ←/→ y A/D mueven la pala, y el ratón la centra en el cursor.
-- [ ] La pala nunca sale de los límites del canvas.
-- [ ] Espacio o clic lanzan la pelota hacia arriba.
-- [ ] La pelota rebota en las paredes laterales y el techo.
-- [ ] Si la pelota golpea el extremo derecho de la pala, sale hacia la derecha. Si golpea el izquierdo, sale hacia la izquierda.
-- [ ] El tablero tiene 48 bloques en 8 columnas y 6 filas, y cada fila es de un color distinto.
-- [ ] Romper un bloque suma exactamente 10 puntos y reproduce la animación de explosión.
-- [ ] Si la pelota cae por debajo de la pala, se resta una vida y la pelota vuelve a la pala.
-- [ ] Al perder la tercera vida se muestra la pantalla de game over.
-- [ ] Al romper los 48 bloques se muestra la pantalla de victoria.
-- [ ] Desde victoria o game over, Espacio o clic reinician con 48 bloques, 3 vidas y 0 puntos.
-- [ ] El HUD muestra en todo momento la puntuación, las vidas y el récord.
-- [ ] Suena `ball-bounce.mp3` al rebotar en la pala o en una pared, y `break-sound.mp3` al romper un bloque.
-- [ ] M silencia y reactiva todos los sonidos.
-- [ ] P o Esc congelan el juego y muestran «PAUSA». Al pulsarlas de nuevo el juego sigue desde el mismo estado.
-- [ ] Si se supera el récord y se recarga la página, el HUD muestra el nuevo récord.
-- [ ] La velocidad de la pelota es la misma con monitores de 60 Hz y de 144 Hz.
-- [ ] Si localStorage está bloqueado, el juego sigue funcionando.
+- [x] Al servir la raíz por HTTP y abrir `index.html` se ve la pantalla de inicio sin errores en la consola.
+- [x] Espacio o clic en la pantalla de inicio llevan a `serve`, con la pelota pegada a la pala.
+- [x] Las flechas ←/→ y A/D mueven la pala, y el ratón la centra en el cursor.
+- [x] La pala nunca sale de los límites del canvas.
+- [x] Espacio o clic lanzan la pelota hacia arriba.
+- [x] La pelota rebota en las paredes laterales y el techo.
+- [x] Si la pelota golpea el extremo derecho de la pala, sale hacia la derecha. Si golpea el izquierdo, sale hacia la izquierda.
+- [x] El tablero tiene 48 bloques en 8 columnas y 6 filas, y cada fila es de un color distinto.
+- [x] Romper un bloque suma exactamente 10 puntos y reproduce la animación de explosión.
+- [x] Si la pelota cae por debajo de la pala, se resta una vida y la pelota vuelve a la pala.
+- [x] Al perder la tercera vida se muestra la pantalla de game over.
+- [x] Al romper los 48 bloques se muestra la pantalla de victoria.
+- [x] Desde victoria o game over, Espacio o clic reinician con 48 bloques, 3 vidas y 0 puntos.
+- [x] El HUD muestra en todo momento la puntuación, las vidas y el récord.
+- [x] Suena `ball-bounce.mp3` al rebotar en la pala o en una pared, y `break-sound.mp3` al romper un bloque.
+- [x] M silencia y reactiva todos los sonidos.
+- [x] P o Esc congelan el juego y muestran «PAUSA». Al pulsarlas de nuevo el juego sigue desde el mismo estado.
+- [x] Si se supera el récord y se recarga la página, el HUD muestra el nuevo récord.
+- [x] La velocidad de la pelota es la misma con monitores de 60 Hz y de 144 Hz.
+- [x] Si localStorage está bloqueado, el juego sigue funcionando.
 
 ## Decisiones
 
