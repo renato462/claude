@@ -10,6 +10,7 @@ const POINTS_PER_BRICK = 10, START_LIVES = 3;
 const MAX_DT = 1 / 30;       // tope del delta time en segundos
 const HIGHSCORE_KEY = 'arkanoid:highscore:v1';
 const BRICK_HITS = 2;              // golpes para romper un bloque
+const DAMAGED_SX = 128;            // columna del sprite agrietado en la hoja
 const BRICK_EXPLOSION_MS = 300;   // sustituye a EXPLOSION_DURATION (150) en game.js
 
 const BG_COLOR = '#0b0b1a';
@@ -361,7 +362,14 @@ function render() {
   ctx.fillRect( 0, 0, CANVAS_W, CANVAS_H );
 
   for ( const brick of state.bricks ) {
-    if ( brick.alive ) drawSprite( ctx, 'block_' + brick.color, brick.x, brick.y, brick.w, brick.h );
+    if ( !brick.alive ) continue;
+    if ( brick.hp < BRICK_HITS ) {
+      // Sprite agrietado: misma fila de color que el bloque, columna DAMAGED_SX
+      const frame = { sx: DAMAGED_SX, sy: SPRITES.blocks[ brick.color ].sy, sw: 32, sh: 16 };
+      drawFrame( ctx, frame, brick.x, brick.y, brick.w, brick.h );
+    } else {
+      drawSprite( ctx, 'block_' + brick.color, brick.x, brick.y, brick.w, brick.h );
+    }
   }
   renderExplosions();
 
