@@ -9,6 +9,7 @@ const ROW_COLORS = [ 'red', 'yellow', 'cyan', 'magenta', 'hotpink', 'green' ];
 const POINTS_PER_BRICK = 10, START_LIVES = 3;
 const MAX_DT = 1 / 30;       // tope del delta time en segundos
 const HIGHSCORE_KEY = 'arkanoid:highscore:v1';
+const BRICK_EXPLOSION_MS = 300;    // sustituye a EXPLOSION_DURATION (150) en game.js
 
 const BG_COLOR = '#0b0b1a';
 const TEXT_COLOR = '#ffffff';
@@ -21,6 +22,7 @@ const state = {
   lives: START_LIVES,
   highScore: 0,
   muted: false,
+  time: 0,                   // reloj de juego en ms; solo avanza dentro de update( dt )
   paddle: { x: ( CANVAS_W - PADDLE_W ) / 2, y: PADDLE_Y, w: PADDLE_W, h: PADDLE_H },
   ball: { x: 0, y: 0, vx: 0, vy: 0, size: BALL_SIZE },
   bricks: [],
@@ -246,7 +248,7 @@ function hitBrick() {
     state.explosions.push( {
       x: brick.x, y: brick.y, w: brick.w, h: brick.h,
       color: brick.color,
-      startTime: performance.now(),
+      startTime: state.time,
     } );
     playSound( 'break' );
 
@@ -295,11 +297,11 @@ function updateBall( dt ) {
 }
 
 function updateExplosions() {
-  const now = performance.now();
-  state.explosions = state.explosions.filter( ex => now - ex.startTime < EXPLOSION_DURATION );
+  state.explosions = state.explosions.filter( ex => state.time - ex.startTime < BRICK_EXPLOSION_MS );
 }
 
 function update( dt ) {
+  state.time += dt * 1000;
   updatePaddle( dt );
 
   if ( state.screen === 'serve' ) {
@@ -328,10 +330,9 @@ function renderHud() {
 }
 
 function renderExplosions() {
-  const now = performance.now();
-  const frameTime = EXPLOSION_DURATION / 4;
+  const frameTime = BRICK_EXPLOSION_MS / 4;
   for ( const ex of state.explosions ) {
-    const i = Math.floor( ( now - ex.startTime ) / frameTime );
+    const i = Math.floor( ( state.time - ex.startTime ) / frameTime );
     const frame = EXPLOSION_FRAMES[ ex.color ][ i ];
     if ( frame ) drawFrame( ctx, frame, ex.x, ex.y, ex.w, ex.h );
   }
