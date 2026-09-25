@@ -4,16 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado del proyecto
 
-Juego Arkanoid/Breakout para navegador, todavía en preparación. Aún no hay código del juego. Tampoco hay `package.json`, build, linter ni tests, y `README.md` está vacío. Por ahora el repo solo tiene los assets y las skills del flujo de specs.
+Juego Arkanoid/Breakout para navegador, todavía en preparación. Según `README.md`, se hará con HTML, CSS y JavaScript puros, sin dependencias. Aún no hay código del juego, ni `package.json`, build, linter o tests. Por ahora el repo solo tiene los assets y las skills del flujo de specs.
 
 ## Flujo de trabajo: desarrollo guiado por specs
 
-Cada funcionalidad se diseña como spec antes de escribir código. Hay dos skills del proyecto en `.agents/skills/`, fijadas desde `Klerith/fernando-skills` mediante `skills-lock.json`:
+Cada funcionalidad se diseña como spec antes de escribir código. Hay dos skills del proyecto, fijadas desde `Klerith/fernando-skills` mediante `skills-lock.json`. Están en `.agents/skills/` y hay una copia idéntica en `.claude/skills/`, que es la que carga Claude Code. Si se modifica una, hay que mantener la otra igual:
 
 - `/spec <descripción>`: hace preguntas para aclarar el alcance y luego escribe una spec numerada en `specs/` (p. ej. `specs/01-mvp-arkanoid.md`) usando `.agents/skills/spec/template.md`. No escribe código.
 - `/spec-impl <NN-nombre-spec>`: solo implementa una spec si su estado significa "Aprobado". Crea una rama git con el nombre de la spec y avanza paso a paso. Lee la configuración opcional de `specs/.spec-config.yml`.
 
-Las specs nuevas deben usar el mismo idioma, los mismos títulos de sección y los mismos nombres de estado que las existentes. La implementación sigue el plan de la spec aprobada, sin improvisar fuera de su alcance. `/spec-impl` necesita un repo git, y este directorio todavía no lo es.
+Las specs nuevas deben usar el mismo idioma, los mismos títulos de sección y los mismos nombres de estado que las existentes. Todavía no existe `specs/`, así que la primera spec fija esa convención. La implementación sigue el plan de la spec aprobada, sin improvisar fuera de su alcance. `/spec-impl` crea la rama `spec-NN-slug` y exige que el árbol de trabajo esté limpio o que confirmes cómo seguir.
 
 ## Assets
 
