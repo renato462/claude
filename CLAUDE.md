@@ -68,4 +68,4 @@ La implementación sigue el plan de la spec aprobada, sin improvisar fuera de su
 
 ## Ejecución
 
-El juego carga imágenes y audio, así que hay que servir la raíz del repo por HTTP en vez de abrirlo con `file://`. Por ejemplo, con `npx serve .` o `python -m http.server`, y abrir `http://localhost:<puerto>/`.
+Basta con abrir `index.html` directamente en el navegador (`file://`): el juego solo usa `new Image()` y `new Audio()`, que funcionan sin servidor. Opcionalmente se puede servir la raíz del repo por HTTP (`npx serve .` o `python -m http.server`). Si en el futuro se usa `fetch`, módulos ES o `getImageData` sobre la hoja de sprites, harán falta HTTP y un servidor.
