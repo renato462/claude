@@ -9,8 +9,14 @@ const ROW_COLORS = [ 'red', 'yellow', 'cyan', 'magenta', 'hotpink', 'green' ];
 const POINTS_PER_BRICK = 10, START_LIVES = 3;
 const MAX_DT = 1 / 30;       // tope del delta time en segundos
 const HIGHSCORE_KEY = 'arkanoid:highscore:v1';
-const BRICK_HITS = 2;              // golpes para romper un bloque
-const DAMAGED_SX = 128;            // columna del sprite agrietado en la hoja
+const LEVELS = [
+  { pattern: 'full',    hits: 1 },
+  { pattern: 'pyramid', hits: 1 },
+  { pattern: 'checker', hits: 2 },
+  { pattern: 'stripes', hits: 2 },
+  { pattern: 'frame',   hits: 3 },
+];
+const DAMAGE_SX = { 2: 96, 1: 160 };   // columna del sprite de daño según hp restante
 const BRICK_EXPLOSION_MS = 300;    // sustituye a EXPLOSION_DURATION (150) en game.js
 const PARTICLE_COUNT = 8;
 const PARTICLE_SIZE = 3;           // px, cuadrado
@@ -33,6 +39,7 @@ const state = {
   screen: 'start',           // 'start' | 'serve' | 'playing' | 'paused' | 'won' | 'lost'
   score: 0,
   lives: START_LIVES,
+  level: 1,                  // 1..LEVELS.length
   highScore: 0,
   muted: false,
   time: 0,                   // reloj de juego en ms; solo avanza dentro de update( dt )
@@ -152,7 +159,8 @@ function togglePause() {
 function resetGame() {
   state.score = 0;
   state.lives = START_LIVES;
-  state.bricks = createBricks();
+  state.level = 1;
+  state.bricks = createBricks( state.level );
   state.explosions = [];
   state.particles = [];
   state.screen = 'serve';
@@ -166,10 +174,20 @@ function endGame( result ) {
   }
 }
 
-function createBricks() {
+// ¿Hay bloque en esta celda según el patrón del nivel?
+function hasBrick( pattern, row, col ) {
+  switch ( pattern ) {
+    case 'full': return true;
+    default: return false;
+  }
+}
+
+function createBricks( level ) {
+  const { pattern, hits } = LEVELS[ level - 1 ];
   const bricks = [];
   for ( let row = 0; row < BRICK_ROWS; row++ ) {
     for ( let col = 0; col < BRICK_COLS; col++ ) {
+      if ( !hasBrick( pattern, row, col ) ) continue;
       bricks.push( {
         x: BRICK_OFFSET_X + col * ( BRICK_W + BRICK_GAP ),
         y: BRICK_OFFSET_Y + row * ( BRICK_H + BRICK_GAP ),
@@ -177,7 +195,7 @@ function createBricks() {
         h: BRICK_H,
         color: ROW_COLORS[ row ],
         alive: true,
-        hp: BRICK_HITS,
+        hp: hits,
       } );
     }
   }
@@ -381,6 +399,7 @@ function renderHud() {
   drawText( 'PUNTOS ' + state.score, 16, HUD_Y, 16, 'left' );
   drawText( 'RÉCORD ' + state.highScore, CANVAS_W / 2, HUD_Y, 16, 'center' );
   drawText( 'VIDAS ' + state.lives, CANVAS_W - 16, HUD_Y, 16, 'right' );
+  drawText( 'NIVEL ' + state.level, CANVAS_W / 2, HUD_Y + 22, 12, 'center' );
   if ( state.muted ) drawText( 'SIN SONIDO (M)', CANVAS_W - 16, HUD_Y + 22, 11, 'right' );
 }
 
@@ -413,9 +432,9 @@ function render() {
 
   for ( const brick of state.bricks ) {
     if ( !brick.alive ) continue;
-    if ( brick.hp < BRICK_HITS ) {
-      // Sprite agrietado: misma fila de color que el bloque, columna DAMAGED_SX
-      const frame = { sx: DAMAGED_SX, sy: SPRITES.blocks[ brick.color ].sy, sw: 32, sh: 16 };
+    if ( brick.hp < LEVELS[ state.level - 1 ].hits ) {
+      // Sprite de daño: misma fila de color que el bloque, columna según hp restante
+      const frame = { sx: DAMAGE_SX[ brick.hp ], sy: SPRITES.blocks[ brick.color ].sy, sw: 32, sh: 16 };
       drawFrame( ctx, frame, brick.x, brick.y, brick.w, brick.h );
     } else {
       drawSprite( ctx, 'block_' + brick.color, brick.x, brick.y, brick.w, brick.h );
@@ -458,5 +477,5 @@ function loop( now ) {
 }
 
 state.highScore = loadHighScore();
-state.bricks = createBricks();
+state.bricks = createBricks( state.level );
 loadSpritesheet( () => requestAnimationFrame( loop ) );
