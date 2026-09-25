@@ -1,6 +1,6 @@
 # SPEC 03 — Cinco niveles con dificultad creciente y sonidos de partida
 
-> **Estado:** Borrador
+> **Estado:** Aprobado
 > **Depende de:** SPEC 01, SPEC 02
 > **Fecha:** 2026-09-25
 > **Objetivo:** Encadenar cinco niveles con tableros generados por código, pelota más rápida y bloques más duros, y ponerles sonido a perder vida, superar nivel, game over y victoria.
