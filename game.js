@@ -9,7 +9,8 @@ const ROW_COLORS = [ 'red', 'yellow', 'cyan', 'magenta', 'hotpink', 'green' ];
 const POINTS_PER_BRICK = 10, START_LIVES = 3;
 const MAX_DT = 1 / 30;       // tope del delta time en segundos
 const HIGHSCORE_KEY = 'arkanoid:highscore:v1';
-const BRICK_EXPLOSION_MS = 300;    // sustituye a EXPLOSION_DURATION (150) en game.js
+const BRICK_HITS = 2;              // golpes para romper un bloque
+const BRICK_EXPLOSION_MS = 300;   // sustituye a EXPLOSION_DURATION (150) en game.js
 
 const BG_COLOR = '#0b0b1a';
 const TEXT_COLOR = '#ffffff';
@@ -162,6 +163,7 @@ function createBricks() {
         h: BRICK_H,
         color: ROW_COLORS[ row ],
         alive: true,
+        hp: BRICK_HITS,
       } );
     }
   }
@@ -235,7 +237,7 @@ function bounceOffPaddle() {
   playSound( 'bounce' );
 }
 
-// Rompe como máximo un bloque por frame y rebota por el eje de menor penetración
+// Golpea como máximo un bloque por frame y rebota por el eje de menor penetración
 function hitBrick() {
   const b = state.ball;
   const ballBox = { x: b.x, y: b.y, w: b.size, h: b.size };
@@ -243,21 +245,30 @@ function hitBrick() {
   for ( const brick of state.bricks ) {
     if ( !brick.alive || !overlaps( ballBox, brick ) ) continue;
 
-    brick.alive = false;
+    brick.hp -= 1;
     state.score += POINTS_PER_BRICK;
-    state.explosions.push( {
-      x: brick.x, y: brick.y, w: brick.w, h: brick.h,
-      color: brick.color,
-      startTime: state.time,
-    } );
-    playSound( 'break' );
 
+    if ( brick.hp > 0 ) {
+      playSound( 'bounce' );
+    } else {
+      brick.alive = false;
+      state.explosions.push( {
+        x: brick.x, y: brick.y, w: brick.w, h: brick.h,
+        color: brick.color,
+        startTime: state.time,
+      } );
+      playSound( 'break' );
+    }
+
+    // Se saca la pelota del bloque para que un bloque dañado no reciba otro golpe en el frame siguiente
     const penX = Math.min( b.x + b.size, brick.x + brick.w ) - Math.max( b.x, brick.x );
     const penY = Math.min( b.y + b.size, brick.y + brick.h ) - Math.max( b.y, brick.y );
     if ( penX < penY ) {
       b.vx = -b.vx;
+      b.x = b.x + b.size / 2 < brick.x + brick.w / 2 ? brick.x - b.size : brick.x + brick.w;
     } else {
       b.vy = -b.vy;
+      b.y = b.y + b.size / 2 < brick.y + brick.h / 2 ? brick.y - b.size : brick.y + brick.h;
     }
 
     if ( !state.bricks.some( br => br.alive ) ) endGame( 'won' );
